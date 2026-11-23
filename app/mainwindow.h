@@ -91,6 +91,7 @@ Q_SIGNALS:
 protected:
     void paintEvent(QPaintEvent *) override;
     void moveEvent(QMoveEvent *) override;
+    void resizeEvent(QResizeEvent *event) override;
     void changeEvent(QEvent *event) override;
     void closeEvent(QCloseEvent *event) override;
     bool focusNextPrevChild(bool) override;
@@ -168,6 +169,8 @@ private:
     void sharedAfterHideWindow();
 
     void updateMask();
+    void layoutContents();
+    int animationFrames() const;
 
     int getScreen();
     QRect getScreenGeometry();

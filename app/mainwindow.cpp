@@ -175,18 +175,22 @@ void MainWindow::initWayland()
 
 void MainWindow::initWaylandSurface()
 {
-    if (m_plasmaShellSurface) {
-        m_plasmaShellSurface->setPosition(pos());
-        return;
-    }
-    if (!m_plasmaShell) {
-        return;
-    }
-    if (auto surface = KWayland::Client::Surface::fromWindow(windowHandle())) {
+    if (!m_plasmaShellSurface) {
+        if (!m_plasmaShell) {
+            return;
+        }
+        auto surface = KWayland::Client::Surface::fromWindow(windowHandle());
+        if (!surface) {
+            return;
+        }
         m_plasmaShellSurface = m_plasmaShell->createSurface(surface, this);
-        m_plasmaShellSurface->setPosition(pos());
         m_plasmaShellSurface->setSkipTaskbar(true);
         m_plasmaShellSurface->setSkipSwitcher(true);
+    }
+
+    // While fullscreen, pos() holds the windowed position (see setWindowGeometry()).
+    if (!m_isFullscreen) {
+        m_plasmaShellSurface->setPosition(pos());
     }
 }
 
@@ -921,7 +925,7 @@ void MainWindow::applySettings()
         disconnect(m_sessionStack, SIGNAL(titleChanged(int, QString)), m_tabBar, SLOT(setTabTitleAutomated(int, QString)));
     }
 
-    m_animationTimer.setInterval(Settings::frames() ? 10 : 0);
+    m_animationTimer.setInterval(animationFrames() ? 10 : 0);
 
     m_tabBar->setVisible(Settings::showTabBar());
     m_titleBar->setVisible(Settings::showTitleBar());
@@ -1009,26 +1013,36 @@ void MainWindow::applyWindowProperties()
 
 void MainWindow::applyWindowGeometry()
 {
-    int width, height;
-
     QAction *action = actionCollection()->action(QStringLiteral("view-full-screen"));
     m_isFullscreen = action->isChecked();
 
-    // On Wayland a maximized window is confined to the work area (panels excluded) and stays
-    // below docks; only a real fullscreen window covers always-visible panels.
-    const Qt::WindowState fullscreenState = m_isWayland ? Qt::WindowFullScreen : Qt::WindowMaximized;
+    if (m_isWayland) {
+        // Real fullscreen: a maximized window is confined to the work area (panels excluded)
+        // and stays below docks. The compositor sizes the fullscreen window and restores the
+        // windowed one; resizeEvent() lays the contents out for whatever size it picks.
+        const Qt::WindowStates states = windowState() & ~Qt::WindowMaximized;
+        const Qt::WindowStates wanted = m_isFullscreen ? states | Qt::WindowFullScreen : states & ~Qt::WindowFullScreen;
+        if (windowState() != wanted) {
+            setWindowState(wanted);
+        }
+
+        setWindowGeometry(Settings::width(), Settings::height(), Settings::position(), Settings::verticalPosition());
+        return;
+    }
+
+    int width, height;
 
     if (m_isFullscreen) {
         width = 100;
         height = 100;
-        if (!windowState().testFlag(fullscreenState)) {
-            setWindowState(windowState() | fullscreenState);
+        if (!windowState().testFlag(Qt::WindowMaximized)) {
+            setWindowState(windowState() | Qt::WindowMaximized);
         }
     } else {
         width = Settings::width();
         height = Settings::height();
-        if (windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
-            setWindowState(windowState() & ~(Qt::WindowMaximized | Qt::WindowFullScreen));
+        if (windowState().testFlag(Qt::WindowMaximized)) {
+            setWindowState(windowState() & ~Qt::WindowMaximized);
         }
     }
 
@@ -1037,25 +1051,36 @@ void MainWindow::applyWindowGeometry()
 
 void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition, int newVerticalPosition)
 {
+    // A visible fullscreen window is sized by the compositor. While hidden, the windowed
+    // geometry is still applied: Qt takes the toplevel's normal size from it when the window is
+    // reopened fullscreen, and uses that size when KWin, having no restore geometry for such a
+    // window, leaves the size to the client on leaving fullscreen.
+    if (m_isWayland && m_isFullscreen && isVisible()) {
+        return;
+    }
+
     QRect workArea = getDesktopGeometry();
 
-    int maxHeight = workArea.height() * newHeight / 100;
-
-    int targetWidth = workArea.width() * newWidth / 100;
-
+    const int targetHeight = workArea.height() * newHeight / 100;
+    const int targetWidth = workArea.width() * newWidth / 100;
     const int targetX = workArea.x() + workArea.width() * newPosition * (100 - newWidth) / 10000;
-    const int targetY = workArea.y() + (workArea.height() - maxHeight) * newVerticalPosition / 100;
+    const int targetY = workArea.y() + (workArea.height() - targetHeight) * newVerticalPosition / 100;
 
-    setGeometry(targetX, targetY, targetWidth, maxHeight);
+    setGeometry(targetX, targetY, targetWidth, targetHeight);
     initWaylandSurface();
 
-    maxHeight -= m_titleBar->height();
-    m_titleBar->setGeometry(0, maxHeight, targetWidth, m_titleBar->height());
+    layoutContents();
+}
+
+void MainWindow::layoutContents()
+{
+    int maxHeight = height() - m_titleBar->height();
+    m_titleBar->setGeometry(0, maxHeight, width(), m_titleBar->height());
     if (!isVisible())
         m_titleBar->updateMask();
 
-    if (Settings::frames() > 0)
-        m_animationStepSize = maxHeight / Settings::frames();
+    if (animationFrames() > 0)
+        m_animationStepSize = maxHeight / animationFrames();
     else
         m_animationStepSize = maxHeight;
 
@@ -1073,6 +1098,21 @@ void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition,
     m_sessionStack->setGeometry(borderWidth, 0, width() - 2 * borderWidth, maxHeight - borderWidth);
 
     updateMask();
+}
+
+void MainWindow::resizeEvent(QResizeEvent *event)
+{
+    KMainWindow::resizeEvent(event);
+
+    // The compositor resizes the window on its own when entering or leaving fullscreen.
+    // The X11 open/retract animation drives the mask itself; it never resizes the window.
+    if (!m_animationTimer.isActive())
+        layoutContents();
+}
+
+int MainWindow::animationFrames() const
+{
+    return Settings::openAnimation() == Settings::EnumOpenAnimation::Fade ? 0 : Settings::frames();
 }
 
 void MainWindow::setScreen(QAction *action)
@@ -1310,10 +1350,12 @@ void MainWindow::_toggleWindowState()
     }
 
 #if HAVE_X11
-    if (!Settings::useWMAssist() && m_kwinAssistPropSet)
+    const bool slide = Settings::openAnimation() == Settings::EnumOpenAnimation::Slide;
+
+    if ((!Settings::useWMAssist() || !slide) && m_kwinAssistPropSet)
         kwinAssistPropCleanup();
 
-    if (m_isX11 && Settings::useWMAssist() && KX11Extras::compositingActive())
+    if (m_isX11 && slide && Settings::useWMAssist() && KX11Extras::compositingActive())
         kwinAssistToggleWindowState(visible);
     else
 #endif
@@ -1328,14 +1370,9 @@ void MainWindow::_toggleWindowState()
             sharedAfterHideWindow();
         } else {
             sharedPreOpenWindow();
-            if (!m_isWayland) {
-                slideWindow();
-            }
 
             show();
-            if (m_isWayland) {
-                slideWindow();
-            }
+            slideWindow();
 
             sharedAfterOpenWindow();
         }
@@ -1344,9 +1381,14 @@ void MainWindow::_toggleWindowState()
 
 void MainWindow::slideWindow()
 {
-    if (KWindowEffects::isEffectAvailable(KWindowEffects::Slide)) {
-        KWindowEffects::slideWindow(windowHandle(), KWindowEffects::TopEdge);
+    if (!KWindowEffects::isEffectAvailable(KWindowEffects::Slide)) {
+        return;
     }
+
+    // Fade: no slide request, so the compositor's regular open/close effect (Fade) applies.
+    // NoEdge also drops a slide installed while the Slide mode was active.
+    const bool slide = Settings::openAnimation() == Settings::EnumOpenAnimation::Slide;
+    KWindowEffects::slideWindow(windowHandle(), slide ? KWindowEffects::TopEdge : KWindowEffects::NoEdge);
 }
 
 #if HAVE_X11
@@ -1426,7 +1468,7 @@ void MainWindow::xshapeToggleWindowState(bool visible)
     if (visible) {
         sharedPreHideWindow();
 
-        m_animationFrame = Settings::frames();
+        m_animationFrame = animationFrames();
 
         connect(&m_animationTimer, &QTimer::timeout, this, &MainWindow::xshapeRetractWindow);
         m_animationTimer.start();
@@ -1448,7 +1490,7 @@ void MainWindow::xshapeOpenWindow()
         sharedAfterOpenWindow();
     }
 
-    if (m_animationFrame == Settings::frames()) {
+    if (m_animationFrame == animationFrames()) {
         m_animationTimer.stop();
         m_animationTimer.disconnect();
 
@@ -1619,7 +1661,9 @@ QRect MainWindow::getDesktopGeometry()
 
     QAction *action = actionCollection()->action(QStringLiteral("view-full-screen"));
 
-    if (action->isChecked())
+    // X11 fullscreen is a maximized window spanning the screen. On Wayland the compositor sizes
+    // the fullscreen window and this keeps describing the windowed (restore) geometry.
+    if (action->isChecked() && !m_isWayland)
         return screenGeometry;
 
     if (m_isWayland) {

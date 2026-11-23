@@ -274,6 +274,27 @@
         </property>
        </widget>
       </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="openAnimationLabel">
+        <property name="text">
+         <string comment="@label:listbox">Animation:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1" colspan="2">
+       <widget class="QComboBox" name="kcfg_OpenAnimation">
+        <item>
+         <property name="text">
+          <string comment="@item:inlistbox Open/retract animation">Slide</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string comment="@item:inlistbox Open/retract animation">Fade</string>
+         </property>
+        </item>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -445,6 +466,7 @@
   <tabstop>kcfg_Frames</tabstop>
   <tabstop>framesSpinBox</tabstop>
   <tabstop>kcfg_UseWMAssist</tabstop>
+  <tabstop>kcfg_OpenAnimation</tabstop>
   <tabstop>kcfg_Position</tabstop>
   <tabstop>kcfg_VerticalPosition</tabstop>
   <tabstop>kcfg_Screen</tabstop>

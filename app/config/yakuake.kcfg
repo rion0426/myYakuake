@@ -186,6 +186,15 @@
       <min>0</min>
       <max>50</max>
     </entry>
+    <entry name="OpenAnimation" type="Enum">
+      <label context="@label">Open/retract animation</label>
+      <whatsthis context="@info:whatsthis">How the window appears and disappears: slide in from the top edge, or fade in and out using the window manager's regular open/close effect.</whatsthis>
+      <choices>
+        <choice name="Slide"/>
+        <choice name="Fade"/>
+      </choices>
+      <default>Slide</default>
+    </entry>
   </group>
   <group name="AutoOpen">
     <entry name="PollMouse" type="Bool">

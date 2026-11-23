@@ -37,6 +37,17 @@ WindowSettings::WindowSettings(QWidget *parent)
     connect(kcfg_Position, SIGNAL(valueChanged(int)), this, SLOT(updatePosition()));
     connect(kcfg_VerticalPosition, SIGNAL(valueChanged(int)), this, SLOT(updatePosition()));
 
+    // Duration and window manager assistance belong to the slide; fading is the compositor's effect.
+    auto updateSlideControls = [this](int animation) {
+        const bool slide = animation == Settings::EnumOpenAnimation::Slide;
+        for (QWidget *widget : {static_cast<QWidget *>(durationLabel), static_cast<QWidget *>(kcfg_Frames),
+                                static_cast<QWidget *>(framesSpinBox), static_cast<QWidget *>(kcfg_UseWMAssist)}) {
+            widget->setEnabled(slide);
+        }
+    };
+    connect(kcfg_OpenAnimation, &QComboBox::currentIndexChanged, this, updateSlideControls);
+    updateSlideControls(Settings::openAnimation());
+
     updateFramesSpinBox(Settings::frames() * 10);
 }
 
