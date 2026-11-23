@@ -5,7 +5,7 @@
 
 Name:    myYakuake
 Version: 26.08.3
-Release: 1%{?dist}
+Release: 2%{?dist}
 Summary: A drop-down terminal emulator (myYakuake fork)
 
 License: GPL-2.0-only OR GPL-3.0-only
@@ -56,7 +56,8 @@ BuildRequires:  xcb-util-devel
 
 %description
 Yakuake drop-down terminal with local changes: real fullscreen on Wayland
-(covers always-visible panels) and a configurable vertical window position.
+(covers always-visible panels), a configurable vertical window position and a
+choice between slide and fade open/retract animations.
 
 
 %prep
@@ -91,5 +92,10 @@ desktop-file-validate %{buildroot}%{_kf6_datadir}/applications/org.kde.yakuake.d
 
 
 %changelog
+* Mon Nov 23 2026 rion0426 - 26.08.3-2
+- Slide/Fade open animation setting
+- Wayland fullscreen: compositor-sized, contents follow resizes, windowed geometry
+  restored correctly also after reopening in fullscreen
+
 * Mon Nov 23 2026 rion0426 - 26.08.3-1
 - Fork of Fedora yakuake 26.08.3-1: Wayland real fullscreen, vertical position setting
