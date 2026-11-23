@@ -47,7 +47,7 @@ AppearanceSettings::AppearanceSettings(QWidget *parent)
 
     installButton->setIcon(QIcon::fromTheme(QStringLiteral("folder")));
     removeButton->setIcon(QIcon::fromTheme(QStringLiteral("edit-delete")));
-    ghnsButton->setConfigFile(QStringLiteral("yakuake.knsrc"));
+    ghnsButton->setConfigFile(QStringLiteral("myyakuake.knsrc"));
 
     connect(ghnsButton, &KNSWidgets::Button::dialogFinished, this, &AppearanceSettings::knsDialogFinished);
 
@@ -56,8 +56,8 @@ AppearanceSettings::AppearanceSettings(QWidget *parent)
     // Get all local skin directories.
     // One for manually installed skins, one for skins installed
     // through KNS3.
-    m_localSkinsDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/yakuake/skins/");
-    m_knsSkinDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/yakuake/kns_skins/");
+    m_localSkinsDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/myyakuake/skins/");
+    m_knsSkinDir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation) + QStringLiteral("/myyakuake/kns_skins/");
 
     populateSkinList();
 }
@@ -81,8 +81,8 @@ void AppearanceSettings::populateSkinList()
     m_skins->clear();
 
     QStringList allSkinLocations;
-    allSkinLocations << QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("/yakuake/skins/"), QStandardPaths::LocateDirectory);
-    allSkinLocations << QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("/yakuake/kns_skins/"), QStandardPaths::LocateDirectory);
+    allSkinLocations << QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("/myyakuake/skins/"), QStandardPaths::LocateDirectory);
+    allSkinLocations << QStandardPaths::locateAll(QStandardPaths::GenericDataLocation, QStringLiteral("/myyakuake/kns_skins/"), QStandardPaths::LocateDirectory);
 
     for (const QString &skinLocation : std::as_const(allSkinLocations)) {
         populateSkinList(skinLocation);

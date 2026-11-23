@@ -19,19 +19,23 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
     app.setQuitOnLastWindowClosed(false);
 
-    KLocalizedString::setApplicationDomain(QByteArrayLiteral("yakuake"));
+    // Own component name: separate config (myyakuakerc), data dir, D-Bus service
+    // (org.kde.myyakuake), Wayland app id and global shortcuts, so it runs next to Yakuake.
+    KLocalizedString::setApplicationDomain(QByteArrayLiteral("myyakuake"));
 
-    KAboutData aboutData(QStringLiteral("yakuake"),
-                         xi18nc("@title", "<application>Yakuake</application>"),
+    KAboutData aboutData(QStringLiteral("myyakuake"),
+                         QStringLiteral("myYakuake"),
                          QStringLiteral(YAKUAKE_VERSION),
                          xi18nc("@title", "A drop-down terminal emulator based on KDE Konsole technology."),
                          KAboutLicense::GPL,
                          xi18nc("@info:credit", "(c) 2008-2018 The Yakuake Team"),
                          QString(),
-                         QStringLiteral("https://apps.kde.org/yakuake"));
+                         QStringLiteral("https://github.com/rion0426/myYakuake"));
 
     aboutData.setOrganizationDomain(QByteArray("kde.org"));
-    aboutData.setProductName(QByteArray("yakuake"));
+    // The default is derived from the homepage (com.github.…); the app id must match the desktop file.
+    aboutData.setDesktopFileName(QStringLiteral("org.kde.myyakuake"));
+    aboutData.setProductName(QByteArray("myyakuake"));
 
     aboutData.addAuthor(xi18nc("@info:credit", "Eike Hein"), xi18nc("@info:credit", "Maintainer, Lead Developer"), QStringLiteral("hein@kde.org"));
     aboutData.addAuthor(xi18nc("@info:credit", "Francois Chazal"), xi18nc("@info:credit", "Project Founder, Legacy skin (Inactive)"));
@@ -55,7 +59,7 @@ int main(int argc, char *argv[])
     parser.process(app);
     aboutData.processCommandLine(&parser);
 
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("yakuake")));
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("myyakuake")));
 
     KDBusService service(KDBusService::Unique);
 

@@ -1,6 +1,6 @@
 [KNewStuff3]
 Categories=Yakuake Skin
 Uncompress=always
-TargetDir=yakuake/kns_skins
+TargetDir=myyakuake/kns_skins
 # In case the entries are invalid or the user uninstalls them manually
 RemoveDeadEntries=true

@@ -12,7 +12,7 @@ mkdir -p "$topdir/SOURCES"
 tarball=$topdir/SOURCES/yakuake-$version.tar.xz
 [[ -f $tarball ]] || curl -fL -o "$tarball" "https://download.kde.org/stable/release-service/$version/src/yakuake-$version.tar.xz"
 
-git -C "$repo" diff "v$version"..HEAD -- app/ > "$topdir/SOURCES/myYakuake.patch"
+git -C "$repo" diff "v$version"..HEAD -- . ':!packaging' ':!tests' > "$topdir/SOURCES/myYakuake.patch"
 
 # Only the latest build is kept; installed releases are upgraded in place by dnf anyway.
 rm -f "$topdir"/RPMS/*/myYakuake-*.rpm

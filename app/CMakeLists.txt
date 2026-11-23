@@ -89,5 +89,7 @@ if(KWayland_FOUND)
 endif()
 
 install(TARGETS yakuake ${KDE_INSTALL_TARGETS_DEFAULT_ARGS})
+# Installed as myYakuake so it can live next to the distribution's Yakuake.
+set_target_properties(yakuake PROPERTIES OUTPUT_NAME myyakuake)
 
-install(FILES yakuake.knsrc DESTINATION ${KDE_INSTALL_KNSRCDIR})
+install(FILES yakuake.knsrc DESTINATION ${KDE_INSTALL_KNSRCDIR} RENAME myyakuake.knsrc)

@@ -84,7 +84,7 @@ def kwin_eval(body):
 
 def yakuake_window():
     return kwin_eval("""
-const w = workspace.windowList().find(w => w.resourceClass === "org.kde.yakuake");
+const w = workspace.windowList().find(w => w.resourceClass === "org.kde.myyakuake");
 const p = workspace.windowList().find(w => w.dock);
 print_result(w ? {x: w.frameGeometry.x, y: w.frameGeometry.y, w: w.frameGeometry.width, h: w.frameGeometry.height,
                   fullScreen: w.fullScreen, layer: w.layer, active: w.active, panelLayer: p ? p.layer : null} : null);
@@ -108,7 +108,7 @@ def screenshot(name):
 
 
 def yakuake(path, iface):
-    return dbus.Interface(bus.get_object("org.kde.yakuake", path), iface)
+    return dbus.Interface(bus.get_object("org.kde.myyakuake", path), iface)
 
 
 def toggle():
@@ -194,7 +194,7 @@ def brightest_row(img):
 
 
 def start_yakuake(animation):
-    with open(os.path.join(os.environ["XDG_CONFIG_HOME"], "yakuakerc"), "w") as f:
+    with open(os.path.join(os.environ["XDG_CONFIG_HOME"], "myyakuakerc"), "w") as f:
         f.write(f"""[Dialogs]
 FirstRun=false
 
@@ -212,7 +212,7 @@ OpenAnimation={animation}
 RememberFullscreen=true
 """)
     p = spawn("yakuake-" + animation, [yakuake_bin], **client_env)
-    wait_for(lambda: bus.name_has_owner("org.kde.yakuake"), "yakuake on D-Bus")
+    wait_for(lambda: bus.name_has_owner("org.kde.myyakuake"), "myYakuake on D-Bus")
     time.sleep(2)
     return p
 
@@ -220,7 +220,7 @@ RememberFullscreen=true
 def stop_yakuake(p):
     p.terminate()
     p.wait(timeout=10)
-    wait_for(lambda: not bus.name_has_owner("org.kde.yakuake"), "yakuake to quit")
+    wait_for(lambda: not bus.name_has_owner("org.kde.myyakuake"), "myYakuake to quit")
 
 
 def open_animation_row(name):
@@ -234,7 +234,7 @@ def open_animation_row(name):
 
 TRACE_JS = """
 function hook(w) {
-    if (w.resourceClass !== "org.kde.yakuake") return;
+    if (w.resourceClass !== "org.kde.myyakuake") return;
     w.frameGeometryChanged.connect(() => console.info("TRACE:" + JSON.stringify(
         [w.frameGeometry.x, w.frameGeometry.y, w.frameGeometry.width, w.frameGeometry.height])));
 }
@@ -321,7 +321,7 @@ try:
     yak = start_yakuake("Slide")
     toggle()
     time.sleep(3)
-    kwin_eval("""workspace.windowList().find(w => w.resourceClass === "org.kde.yakuake").minimized = true;
+    kwin_eval("""workspace.windowList().find(w => w.resourceClass === "org.kde.myyakuake").minimized = true;
 print_result(1);""")
     time.sleep(3)
     early, settled = open_animation_row("7-unminimize")

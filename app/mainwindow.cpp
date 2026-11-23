@@ -255,7 +255,7 @@ void MainWindow::setupActions()
 
     action = actionCollection()->addAction(QStringLiteral("toggle-window-state"));
     action->setText(xi18nc("@action", "Open/Retract Yakuake"));
-    action->setIcon(QIcon::fromTheme(QStringLiteral("yakuake")));
+    action->setIcon(QIcon::fromTheme(QStringLiteral("myyakuake")));
     KGlobalAccel::self()->setGlobalShortcut(action, QList<QKeySequence>() << QKeySequence(Qt::Key_F12));
     connect(action, &QAction::triggered, this, &MainWindow::toggleWindowState);
     connect(action, &QAction::changed, this, &MainWindow::updateTrayTooltip);
@@ -1810,7 +1810,7 @@ void MainWindow::updateTrayTooltip()
     const QList<QKeySequence> &shortcuts = KGlobalAccel::self()->shortcut(action);
     if (!shortcuts.isEmpty()) {
         const QString shortcut(shortcuts.first().toString(QKeySequence::NativeText));
-        m_notifierItem->setToolTip(QStringLiteral("yakuake"), QStringLiteral("Yakuake"), xi18nc("@info", "Press <shortcut>%1</shortcut> to open", shortcut));
+        m_notifierItem->setToolTip(QStringLiteral("myyakuake"), QStringLiteral("myYakuake"), xi18nc("@info", "Press <shortcut>%1</shortcut> to open", shortcut));
     }
 }
 
