@@ -7,6 +7,7 @@
 
 #include "titlebar.h"
 #include "mainwindow.h"
+#include "settings.h"
 #include "skin.h"
 
 #include <KLocalizedString>
@@ -150,8 +151,19 @@ void TitleBar::mouseMoveEvent(QMouseEvent *event)
             return;
         }
 
-        int maxHeight = window->getDesktopGeometry().height();
-        int newHeight = event->globalPosition().y() / (maxHeight / 100);
+        // The window's top edge depends on its height when it is not top-aligned:
+        // top = area.y + (area.height - h) * v / 100. Solve for the h that puts the
+        // bottom edge (top + h) under the cursor.
+        const QRect workArea = window->getDesktopGeometry();
+        const int verticalPosition = Settings::verticalPosition();
+
+        if (verticalPosition >= 100 || workArea.height() <= 0) {
+            event->ignore();
+            return;
+        }
+
+        const qreal cursorOffset = event->globalPosition().y() - workArea.y() - workArea.height() * verticalPosition / 100.0;
+        int newHeight = qRound(cursorOffset * 100.0 * 100.0 / (workArea.height() * (100 - verticalPosition)));
 
         // Correct newHeight if mouse is dragged too far
         if (newHeight > 100) {

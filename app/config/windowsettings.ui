@@ -329,6 +329,46 @@
       <item>
        <layout class="QHBoxLayout">
         <item>
+         <widget class="QLabel" name="topLabel">
+          <property name="text">
+           <string comment="@item:inrange Direction to move the window in">Top</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QSlider" name="kcfg_VerticalPosition">
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="singleStep">
+           <number>10</number>
+          </property>
+          <property name="tracking">
+           <bool>true</bool>
+          </property>
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="tickPosition">
+           <enum>QSlider::TicksBelow</enum>
+          </property>
+          <property name="tickInterval">
+           <number>10</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="bottomLabel">
+          <property name="text">
+           <string comment="@item:inrange Direction to move the window in">Bottom</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout">
+        <item>
          <widget class="QLabel" name="screenLabel">
           <property name="enabled">
            <bool>false</bool>
@@ -406,6 +446,7 @@
   <tabstop>framesSpinBox</tabstop>
   <tabstop>kcfg_UseWMAssist</tabstop>
   <tabstop>kcfg_Position</tabstop>
+  <tabstop>kcfg_VerticalPosition</tabstop>
   <tabstop>kcfg_Screen</tabstop>
   <tabstop>kcfg_ShowOnAllDesktops</tabstop>
  </tabstops>

@@ -31,6 +31,13 @@
       <min>0</min>
       <max>100</max>
     </entry>
+    <entry name="VerticalPosition" type="Int">
+      <label context="@label">Window vertical position</label>
+      <whatsthis context="@info:whatsthis">Vertical placement of the application window within the free space, as a percentage: 0 is the top edge, 50 is centered, 100 is the bottom edge.</whatsthis>
+      <default>0</default>
+      <min>0</min>
+      <max>100</max>
+    </entry>
     <entry name="ShowOnAllDesktops" type="Bool">
       <label context="@label">Show window on all desktops</label>
       <whatsthis context="@info:whatsthis">Whether to show the window on all desktops.</whatsthis>

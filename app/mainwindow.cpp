@@ -1014,24 +1014,28 @@ void MainWindow::applyWindowGeometry()
     QAction *action = actionCollection()->action(QStringLiteral("view-full-screen"));
     m_isFullscreen = action->isChecked();
 
+    // On Wayland a maximized window is confined to the work area (panels excluded) and stays
+    // below docks; only a real fullscreen window covers always-visible panels.
+    const Qt::WindowState fullscreenState = m_isWayland ? Qt::WindowFullScreen : Qt::WindowMaximized;
+
     if (m_isFullscreen) {
         width = 100;
         height = 100;
-        if (!windowState().testFlag(Qt::WindowMaximized)) {
-            setWindowState(windowState() | Qt::WindowMaximized);
+        if (!windowState().testFlag(fullscreenState)) {
+            setWindowState(windowState() | fullscreenState);
         }
     } else {
         width = Settings::width();
         height = Settings::height();
-        if (windowState().testFlag(Qt::WindowMaximized)) {
-            setWindowState(windowState() & ~Qt::WindowMaximized);
+        if (windowState() & (Qt::WindowMaximized | Qt::WindowFullScreen)) {
+            setWindowState(windowState() & ~(Qt::WindowMaximized | Qt::WindowFullScreen));
         }
     }
 
-    setWindowGeometry(width, height, Settings::position());
+    setWindowGeometry(width, height, Settings::position(), Settings::verticalPosition());
 }
 
-void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition)
+void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition, int newVerticalPosition)
 {
     QRect workArea = getDesktopGeometry();
 
@@ -1039,7 +1043,10 @@ void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition)
 
     int targetWidth = workArea.width() * newWidth / 100;
 
-    setGeometry(workArea.x() + workArea.width() * newPosition * (100 - newWidth) / 10000, workArea.y(), targetWidth, maxHeight);
+    const int targetX = workArea.x() + workArea.width() * newPosition * (100 - newWidth) / 10000;
+    const int targetY = workArea.y() + (workArea.height() - maxHeight) * newVerticalPosition / 100;
+
+    setGeometry(targetX, targetY, targetWidth, maxHeight);
     initWaylandSurface();
 
     maxHeight -= m_titleBar->height();
@@ -1248,7 +1255,7 @@ void MainWindow::toggleWindowState()
         QObject::connect(watcher, &QDBusPendingCallWatcher::finished, this, [=, this]() {
             QDBusPendingReply<QRect> reply = *watcher;
             m_availableScreenRect = reply.isValid() ? reply.value() : QRect();
-            setWindowGeometry(Settings::width(), Settings::height(), Settings::position());
+            applyWindowGeometry();
             watcher->deleteLater();
         });
 

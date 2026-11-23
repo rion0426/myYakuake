@@ -103,7 +103,7 @@ private Q_SLOTS:
     void applyWindowProperties();
 
     void applyWindowGeometry();
-    void setWindowGeometry(int width, int height, int position);
+    void setWindowGeometry(int width, int height, int position, int verticalPosition);
 
     void updateScreenMenu();
     void setScreen(QAction *action);
