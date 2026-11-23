@@ -5,7 +5,7 @@
 
 Name:    myYakuake
 Version: 26.08.3
-Release: 2%{?dist}
+Release: 3%{?dist}
 Summary: A drop-down terminal emulator (myYakuake fork)
 
 License: GPL-2.0-only OR GPL-3.0-only
@@ -92,6 +92,10 @@ desktop-file-validate %{buildroot}%{_kf6_datadir}/applications/org.kde.yakuake.d
 
 
 %changelog
+* Mon Nov 23 2026 rion0426 - 26.08.3-3
+- Wayland: one toggle reopens a minimized window with the open animation
+- Wayland: no intermediate top-left frame when leaving fullscreen
+
 * Mon Nov 23 2026 rion0426 - 26.08.3-2
 - Slide/Fade open animation setting
 - Wayland fullscreen: compositor-sized, contents follow resizes, windowed geometry

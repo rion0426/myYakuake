@@ -120,6 +120,11 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(&m_mousePoller, &QTimer::timeout, this, &MainWindow::pollMouse);
 
+    // Fallback when leaving fullscreen does not resize the window (windowed size == screen size).
+    m_fullscreenExitTimer.setSingleShot(true);
+    m_fullscreenExitTimer.setInterval(500);
+    connect(&m_fullscreenExitTimer, &QTimer::timeout, this, &MainWindow::applyWindowGeometry);
+
     if (KWindowSystem::isPlatformX11()) {
         connect(KX11Extras::self(), &KX11Extras::workAreaChanged, this, &MainWindow::applyWindowGeometry);
     }
@@ -1023,7 +1028,14 @@ void MainWindow::applyWindowGeometry()
         const Qt::WindowStates states = windowState() & ~Qt::WindowMaximized;
         const Qt::WindowStates wanted = m_isFullscreen ? states | Qt::WindowFullScreen : states & ~Qt::WindowFullScreen;
         if (windowState() != wanted) {
+            const bool leavingFullscreen = isVisible() && windowState().testFlag(Qt::WindowFullScreen) && !m_isFullscreen;
             setWindowState(wanted);
+            if (leavingFullscreen) {
+                // Resizing or moving now would land on the still-fullscreen window (a one-frame
+                // jump to the top-left). Wait for KWin's restore; resizeEvent() then corrects it.
+                m_fullscreenExitTimer.start();
+                return;
+            }
         }
 
         setWindowGeometry(Settings::width(), Settings::height(), Settings::position(), Settings::verticalPosition());
@@ -1051,11 +1063,12 @@ void MainWindow::applyWindowGeometry()
 
 void MainWindow::setWindowGeometry(int newWidth, int newHeight, int newPosition, int newVerticalPosition)
 {
-    // A visible fullscreen window is sized by the compositor. While hidden, the windowed
-    // geometry is still applied: Qt takes the toplevel's normal size from it when the window is
-    // reopened fullscreen, and uses that size when KWin, having no restore geometry for such a
-    // window, leaves the size to the client on leaving fullscreen.
-    if (m_isWayland && m_isFullscreen && isVisible()) {
+    // A visible fullscreen window (or one KWin is still restoring from fullscreen) is sized by
+    // the compositor. While hidden, the windowed geometry is still applied: Qt takes the
+    // toplevel's normal size from it when the window is reopened fullscreen, and uses that
+    // size when KWin, having no restore geometry for such a window, leaves the size to the
+    // client on leaving fullscreen.
+    if (m_isWayland && isVisible() && (m_isFullscreen || m_fullscreenExitTimer.isActive())) {
         return;
     }
 
@@ -1108,6 +1121,11 @@ void MainWindow::resizeEvent(QResizeEvent *event)
     // The X11 open/retract animation drives the mask itself; it never resizes the window.
     if (!m_animationTimer.isActive())
         layoutContents();
+
+    if (m_fullscreenExitTimer.isActive()) {
+        m_fullscreenExitTimer.stop();
+        applyWindowGeometry();
+    }
 }
 
 int MainWindow::animationFrames() const
@@ -1308,6 +1326,15 @@ void MainWindow::toggleWindowState()
 void MainWindow::_toggleWindowState()
 {
     bool visible = isVisible();
+
+    // Minimized on Wayland: still visible to Qt, but suspended and not exposed. Retract it
+    // silently so this toggle reopens it with the open animation instead of hiding it.
+    if (m_isWayland && visible && windowHandle() && !windowHandle()->isExposed()) {
+        sharedPreHideWindow();
+        hide();
+        sharedAfterHideWindow();
+        visible = false;
+    }
 
     if (visible && !isActiveWindow() && Settings::keepOpen()) {
         // Window is open but doesn't have focus; it's set to stay open

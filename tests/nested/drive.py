@@ -232,6 +232,29 @@ def open_animation_row(name):
     return early, brightest_row(screenshot(name + "-open"))
 
 
+TRACE_JS = """
+function hook(w) {
+    if (w.resourceClass !== "org.kde.yakuake") return;
+    w.frameGeometryChanged.connect(() => console.info("TRACE:" + JSON.stringify(
+        [w.frameGeometry.x, w.frameGeometry.y, w.frameGeometry.width, w.frameGeometry.height])));
+}
+workspace.windowList().forEach(hook);
+workspace.windowAdded.connect(hook);
+"""
+
+
+def frames_during(action, settle=3):
+    """Every frame geometry KWin gives the Yakuake window while action() takes effect."""
+    logs["kwin"].flush()
+    with open(os.path.join(out, "kwin.log")) as f:
+        seen = len(f.readlines())
+    action()
+    time.sleep(settle)
+    logs["kwin"].flush()
+    with open(os.path.join(out, "kwin.log")) as f:
+        return [tuple(json.loads(line.split("TRACE:", 1)[1])) for line in f.readlines()[seen:] if "TRACE:" in line]
+
+
 try:
     wait_for(lambda: bus.name_has_owner("org.kde.KWin"), "KWin on D-Bus")
     spawn("plasmashell", [sys.executable, os.path.join(here, "fake_plasmashell.py"), *map(str, AREA)])
@@ -240,6 +263,10 @@ try:
           QT_WAYLAND_SHELL_INTEGRATION="layer-shell", **client_env)
     wait_for(lambda: bus.name_has_owner("org.kde.plasmashell"), "fake plasmashell")
     ctx, kbd = connect_keyboard()
+    with open(os.path.join(out, "trace.js"), "w") as f:
+        f.write(TRACE_JS)
+    sid = kwin_iface("/Scripting", "org.kde.kwin.Scripting").loadScript(os.path.join(out, "trace.js"), "trace", signature="ss")
+    kwin_iface(f"/Scripting/Script{sid}", "org.kde.kwin.Script").run()
 
     # Height=50% of the work area, centered in it (VerticalPosition=50).
     height = (H - PANEL) * 50 // 100
@@ -262,8 +289,9 @@ try:
     check(win["layer"] > win["panelLayer"], "fullscreen stacks above the panel")
     screenshot("2-fullscreen")
 
-    chord(ctx, kbd, KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_F11)
-    time.sleep(3)
+    frames = frames_during(lambda: chord(ctx, kbd, KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_F11))
+    print("frames while leaving fullscreen:", frames)
+    check(frames == [windowed], "leaving fullscreen goes straight to the windowed geometry (no intermediate frame)")
     win = yakuake_window()
     print("restored:", win)
     check(not win["fullScreen"] and same_rect(win, windowed), "leaving fullscreen restores windowed geometry")
@@ -287,6 +315,20 @@ try:
     print("restored after reopen:", win)
     check(not win["fullScreen"] and same_rect(win, windowed), "leaving fullscreen after reopen restores windowed geometry")
     screenshot("5-restored-after-reopen")
+    stop_yakuake(yak)
+
+    # Minimized windows stay "visible" to Qt; one toggle must bring it back with the animation.
+    yak = start_yakuake("Slide")
+    toggle()
+    time.sleep(3)
+    kwin_eval("""workspace.windowList().find(w => w.resourceClass === "org.kde.yakuake").minimized = true;
+print_result(1);""")
+    time.sleep(3)
+    early, settled = open_animation_row("7-unminimize")
+    win = yakuake_window()
+    print("after one toggle while minimized:", win, "tab bar row early", early, "settled", settled)
+    check(win is not None and win["active"] and same_rect(win, windowed), "one toggle reopens a minimized window")
+    check(early < settled - 20, "reopening a minimized window plays the open animation")
     stop_yakuake(yak)
 
     yak = start_yakuake("Fade")

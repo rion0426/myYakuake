@@ -206,6 +206,7 @@ private:
 
     QTimer m_animationTimer;
     QTimer m_mousePoller;
+    QTimer m_fullscreenExitTimer;
     int m_animationFrame;
     int m_animationStepSize;
 
