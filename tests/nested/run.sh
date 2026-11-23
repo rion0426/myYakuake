@@ -15,4 +15,15 @@ printf '[Plugins]\nscaleEnabled=false\nfadeEnabled=true\n' >"$out/config/kwinrc"
 # Qt logs to journald when stderr is not a terminal; the driver reads KWin script output from kwin.log.
 export QT_FORCE_STDERR_LOGGING=1
 export XDG_CONFIG_HOME=$out/config XDG_STATE_HOME=$out/state XDG_CACHE_HOME=$out/cache XDG_DATA_HOME=$out/data
-exec dbus-run-session -- python3 "$here/drive.py" "$out" "$bin"
+
+# D-Bus-activated helpers of the private session (ksecretd, xdg-desktop-portal-gtk) outlive it.
+cleanup() {
+    local pid
+    for pid in $(pgrep -u "$(id -u)"); do
+        if tr '\0' '\n' <"/proc/$pid/environ" 2>/dev/null | grep -qx "XDG_CONFIG_HOME=$out/config"; then
+            kill "$pid" 2>/dev/null || true
+        fi
+    done
+}
+trap cleanup EXIT
+dbus-run-session -- python3 "$here/drive.py" "$out" "$bin"
