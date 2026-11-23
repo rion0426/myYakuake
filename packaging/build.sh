@@ -14,4 +14,6 @@ tarball=$topdir/SOURCES/yakuake-$version.tar.xz
 
 git -C "$repo" diff "v$version"..HEAD -- app/ > "$topdir/SOURCES/myYakuake.patch"
 
+# Only the latest build is kept; installed releases are upgraded in place by dnf anyway.
+rm -f "$topdir"/RPMS/*/myYakuake-*.rpm
 rpmbuild -bb "$spec"
