@@ -6,7 +6,8 @@ set -euo pipefail
 repo=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 spec=$repo/packaging/myYakuake.spec
 version=$(rpmspec -q --qf '%{VERSION}\n' --srpm "$spec")
-topdir=$(rpm --eval '%{_topdir}')
+# Build tree inside the repo (ignored by /build*/ in .gitignore) instead of ~/rpmbuild.
+topdir=$repo/build-rpm
 
 mkdir -p "$topdir/SOURCES"
 tarball=$topdir/SOURCES/yakuake-$version.tar.xz
@@ -16,4 +17,5 @@ git -C "$repo" diff "v$version"..HEAD -- . ':!packaging' ':!tests' > "$topdir/SO
 
 # Only the latest build is kept; installed releases are upgraded in place by dnf anyway.
 rm -f "$topdir"/RPMS/*/myYakuake-*.rpm
-rpmbuild -bb "$spec"
+rpmbuild --define "_topdir $topdir" -bb "$spec"
+echo "RPMs: $topdir/RPMS"
